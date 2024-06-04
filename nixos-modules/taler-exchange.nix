@@ -1,8 +1,12 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   taler-exchange = pkgs.taler-exchange.overrideAttrs (oa: {
     preConfigure = ''
-      ${oa.preConfigure}
       substituteInPlace src/exchangedb/plugin_exchangedb_postgres.c \
         --replace "#define AUTO_EXPLAIN 1" "#define AUTO_EXPLAIN 0"
     '';
@@ -15,8 +19,30 @@ let
       PORT = 8081;
       DB = "postgres";
       EXPIRE_IDLE_SLEEP_INTERVAL = "1 s";
-      BASE_URL = "https://example.com/";
+      # BASE_URL = "https://example.com/";
+      BASE_URL = "http://localhost:8081/";
       MASTER_PRIV_FILE = "/var/lib/taler/master.priv";
+
+      MASTER_PUBLIC_KEY = "98NJW3CQHZQGQXTY3K85K531XKPAPAVV4Q5V8PYYRR00NJGZWNVG";
+      AML_THRESHOLD = "KUDOS:1000";
+      CURRENCY_FRACTION_DIGITS = 2;
+      KYC_AML_TRIGGER = true;
+      ATTRIBUTE_ENCRYPTION_KEY = "SET_ME_PLEASE";
+      ENABLE_REWARDS = "YES";
+      MAX_KEYS_CACHING = "forever";
+      SERVE = "tcp";
+      AGGREGATOR_IDLE_SLEEP_INTERVAL = "60 s";
+      ASSET_TYPE = "fiat";
+      ROUTER_IDLE_SLEEP_INTERVAL = "60 s";
+      EXPIRE_SHARD_SIZE = "60 s";
+      TRANSFER_IDLE_SLEEP_INTERVAL = "60 s";
+      CLOSER_IDLE_SLEEP_INTERVAL = "60 s";
+      AGGREGATOR_SHARD_SIZE = 2147483648;
+      ROUTER_SHARD_SIZE = 2147483648;
+      WIREWATCH_IDLE_SLEEP_INTERVAL = "1 s";
+      SIGNKEY_LEGAL_DURATION = "2 years";
+      STEFAN_ABS = "CURRENCY:0";
+      STEFAN_LOG = "CURRENCY:0";
     };
     exchangedb-postgres = {
       "CONFIG" = "postgres:///taler-exchange";
@@ -32,18 +58,23 @@ let
       TALER_HOME = "/tmp";
     };
   } cfg.settings;
-  
-  configFile = builtins.toFile "taler.conf" (
-    lib.generators.toINI {} settings
-  );
+
+  configFile = builtins.toFile "taler.conf" (lib.generators.toINI { } settings);
 in
 {
   options.services.taler-exchange = with lib; {
     enable = mkEnableOption "GNU Taler Exchange";
 
     settings = mkOption {
-      type = with types; attrsOf (oneOf [ bool float int str ]);
-      default = {};
+      type =
+        with types;
+        attrsOf (oneOf [
+          bool
+          float
+          int
+          str
+        ]);
+      default = { };
       example = literalExpression ''
         {
           taler = {
@@ -51,8 +82,28 @@ in
             CURRENCY_ROUND_UNIT = "EUR:0.01";
           };
           exchange = {
-            BASE_URL = "https://example.com/";
-            MASTER_PUBLIC_KEY = "";
+            BASE_URL = "http://localhost:8081/";
+            PORT = "8081";
+            MASTER_PUBLIC_KEY = "98NJW3CQHZQGQXTY3K85K531XKPAPAVV4Q5V8PYYRR00NJGZWNVG";
+            AML_THRESHOLD = "KUDOS:1000";
+            CURRENCY_FRACTION_DIGITS = 2;
+            KYC_AML_TRIGGER = true;
+            ATTRIBUTE_ENCRYPTION_KEY = "SET_ME_PLEASE";
+            ENABLE_REWARDS = "YES";
+            MAX_KEYS_CACHING = "forever";
+            SERVE = "tcp";
+            AGGREGATOR_IDLE_SLEEP_INTERVAL = "60 s";
+            ASSET_TYPE = "fiat";
+            ROUTER_IDLE_SLEEP_INTERVAL = "60 s";
+            EXPIRE_SHARD_SIZE = "60 s";
+            TRANSFER_IDLE_SLEEP_INTERVAL = "60 s";
+            CLOSER_IDLE_SLEEP_INTERVAL = "60 s";
+            AGGREGATOR_SHARD_SIZE = 2147483648;
+            ROUTER_SHARD_SIZE = 2147483648;
+            WIREWATCH_IDLE_SLEEP_INTERVAL = "1 s";
+            SIGNKEY_LEGAL_DURATION = "2 years";
+            STEFAN_ABS = "CURRENCY:0";
+            STEFAN_LOG = "CURRENCY:0";
           };
         }
       '';
@@ -61,7 +112,8 @@ in
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = with pkgs; [
-      gnunet taler-exchange
+      gnunet
+      taler-exchange
     ];
     environment.etc."taler/taler.conf".source = "/var/lib/taler/taler.conf";
 
@@ -86,7 +138,10 @@ in
 
     systemd.targets.taler-exchange = {
       description = "GNU taler exchange";
-      after = [ "postgresql.service" "network.target" ];
+      after = [
+        "postgresql.service"
+        "network.target"
+      ];
       wants = [
         "taler-init.service"
         "taler-exchange-dbinit.service"
@@ -118,7 +173,12 @@ in
 
     systemd.services.taler-exchange-aggregator = {
       description = "GNU Taler payment system exchange aggregator service";
-      after = [ "postgresql.service" "taler-init.service" "taler-exchange-dbinit.service" "network.target" ];
+      after = [
+        "postgresql.service"
+        "taler-init.service"
+        "taler-exchange-dbinit.service"
+        "network.target"
+      ];
       partOf = [ "taler-exchange.target" ];
 
       serviceConfig = {
@@ -136,7 +196,12 @@ in
     };
     systemd.services.taler-exchange-closer = {
       description = "GNU Taler payment system exchange closer service";
-      after = [ "postgresql.service" "taler-init.service" "taler-exchange-dbinit.service" "network.target" ];
+      after = [
+        "postgresql.service"
+        "taler-init.service"
+        "taler-exchange-dbinit.service"
+        "network.target"
+      ];
       partOf = [ "taler-exchange.target" ];
 
       serviceConfig = {
@@ -154,7 +219,12 @@ in
     };
     systemd.services.taler-exchange-expire = {
       description = "GNU Taler payment system exchange expire service";
-      after = [ "postgresql.service" "taler-init.service" "taler-exchange-dbinit.service" "network.target" ];
+      after = [
+        "postgresql.service"
+        "taler-init.service"
+        "taler-exchange-dbinit.service"
+        "network.target"
+      ];
       partOf = [ "taler-exchange.target" ];
 
       serviceConfig = {
@@ -173,8 +243,21 @@ in
     systemd.services.taler-exchange-httpd = {
       description = "GNU Taler payment system exchange REST API";
       unitConfig.AssertPathExists = "/run/taler/exchange-httpd";
-      requires = [ "taler-exchange-httpd.socket" "taler-exchange-secmod-cs.service" "taler-exchange-secmod-rsa.service" "taler-exchange-secmod-eddsa.service" ];
-      after = [ "postgresql.service" "taler-init.service" "taler-exchange-dbinit.service" "network.target" "taler-exchange-secmod-cs.service" "taler-exchange-secmod-rsa.service" "taler-exchange-secmod-eddsa.service" ];
+      requires = [
+        "taler-exchange-httpd.socket"
+        "taler-exchange-secmod-cs.service"
+        "taler-exchange-secmod-rsa.service"
+        "taler-exchange-secmod-eddsa.service"
+      ];
+      after = [
+        "postgresql.service"
+        "taler-init.service"
+        "taler-exchange-dbinit.service"
+        "network.target"
+        "taler-exchange-secmod-cs.service"
+        "taler-exchange-secmod-rsa.service"
+        "taler-exchange-secmod-eddsa.service"
+      ];
       partOf = [ "taler-exchange.target" ];
       wantedBy = [ "multi-user.target" ];
 
@@ -216,7 +299,7 @@ in
     };
     systemd.services.taler-exchange-secmod-eddsa = {
       description = "GNU Taler payment system exchange EdDSA security module";
-      unitConfig.AssertPathExists  = "/run/taler/exchange-secmod-eddsa";
+      unitConfig.AssertPathExists = "/run/taler/exchange-secmod-eddsa";
       partOf = [ "taler-exchange.target" ];
 
       serviceConfig = {
@@ -238,7 +321,7 @@ in
     };
     systemd.services.taler-exchange-secmod-rsa = {
       description = "GNU Taler payment system exchange RSA security module";
-      unitConfig.AssertPathExists  = "/run/taler/exchange-secmod-rsa";
+      unitConfig.AssertPathExists = "/run/taler/exchange-secmod-rsa";
       partOf = [ "taler-exchange.target" ];
 
       serviceConfig = {
@@ -260,7 +343,12 @@ in
     };
     systemd.services.taler-exchange-transfer = {
       description = "GNU Taler Exchange Transfer Service";
-      after = [ "postgresql.service" "taler-init.service" "taler-exchange-dbinit.service" "network.target" ];
+      after = [
+        "postgresql.service"
+        "taler-init.service"
+        "taler-exchange-dbinit.service"
+        "network.target"
+      ];
       partOf = [ "taler-exchange.target" ];
 
       serviceConfig = {
@@ -278,7 +366,12 @@ in
     };
     systemd.services.taler-exchange-wirewatch = {
       description = "GNU Taler payment system exchange wirewatch service";
-      after = [ "postgresql.service" "taler-init.service" "taler-exchange-dbinit.service" "network.target" ];
+      after = [
+        "postgresql.service"
+        "taler-init.service"
+        "taler-exchange-dbinit.service"
+        "network.target"
+      ];
       partOf = [ "taler-exchange.target" ];
 
       serviceConfig = {
@@ -339,35 +432,62 @@ in
       ];
       script =
         let
-          ensureUsers = [{
-            name = "taler-exchange-httpd";
-            ensurePermissions = { "DATABASE \"taler-exchange\"" = "ALL PRIVILEGES"; };
-          } {
-            name = "taler-exchange-aggregator";
-            ensurePermissions = { "ALL TABLES IN SCHEMA public" = "SELECT,INSERT,UPDATE"; };
-          } {
-            name = "taler-exchange-closer";
-            ensurePermissions = { "ALL TABLES IN SCHEMA public" = "SELECT,INSERT,UPDATE"; };
-          } {
-            name = "taler-exchange-wire";
-            ensurePermissions = { "ALL TABLES IN SCHEMA public" = "SELECT,INSERT,UPDATE"; };
-          } {
-            name = "taler-exchange-aggregator";
-            ensurePermissions = { "ALL SEQUENCES IN SCHEMA public" = "USAGE"; };
-          } {
-            name = "taler-exchange-closer";
-            ensurePermissions = { "ALL SEQUENCES IN SCHEMA public" = "USAGE"; };
-          } {
-            name = "taler-exchange-wire";
-            ensurePermissions = { "ALL SEQUENCES IN SCHEMA public" = "USAGE"; };
-          } {
-            name = "taler-exchange-expire";
-            ensurePermissions = { "ALL SEQUENCES IN SCHEMA public" = "USAGE";
-                                  "ALL TABLES IN SCHEMA public" = "SELECT,INSERT,UPDATE"; };
-          }];
+          ensureUsers = [
+            {
+              name = "taler-exchange-httpd";
+              ensurePermissions = {
+                "DATABASE \"taler-exchange\"" = "ALL PRIVILEGES";
+              };
+            }
+            {
+              name = "taler-exchange-aggregator";
+              ensurePermissions = {
+                "ALL TABLES IN SCHEMA public" = "SELECT,INSERT,UPDATE";
+              };
+            }
+            {
+              name = "taler-exchange-closer";
+              ensurePermissions = {
+                "ALL TABLES IN SCHEMA public" = "SELECT,INSERT,UPDATE";
+              };
+            }
+            {
+              name = "taler-exchange-wire";
+              ensurePermissions = {
+                "ALL TABLES IN SCHEMA public" = "SELECT,INSERT,UPDATE";
+              };
+            }
+            {
+              name = "taler-exchange-aggregator";
+              ensurePermissions = {
+                "ALL SEQUENCES IN SCHEMA public" = "USAGE";
+              };
+            }
+            {
+              name = "taler-exchange-closer";
+              ensurePermissions = {
+                "ALL SEQUENCES IN SCHEMA public" = "USAGE";
+              };
+            }
+            {
+              name = "taler-exchange-wire";
+              ensurePermissions = {
+                "ALL SEQUENCES IN SCHEMA public" = "USAGE";
+              };
+            }
+            {
+              name = "taler-exchange-expire";
+              ensurePermissions = {
+                "ALL SEQUENCES IN SCHEMA public" = "USAGE";
+                "ALL TABLES IN SCHEMA public" = "SELECT,INSERT,UPDATE";
+              };
+            }
+          ];
           database = "taler-exchange";
-        in with lib; ''
-          PSQL="psql --port=${toString config.services.postgresql.port}"
+        in
+        with lib;
+        ''
+          PSQL="psql --port=${toString config.services.postgresql.settings.port}"
 
           if [ -e "${config.services.postgresql.dataDir}/.taler-init" ]; then
             exit 0
@@ -381,9 +501,11 @@ in
             $PSQL -tAc "SELECT 1 FROM pg_roles WHERE rolname='${user.name}'" ${database} | \
               grep -q 1 || \
               $PSQL -tAc 'CREATE USER "${user.name}"' ${database}
-            ${concatStringsSep "\n" (mapAttrsToList (object: permission: ''
+            ${concatStringsSep "\n" (
+              mapAttrsToList (object: permission: ''
                 $PSQL -tAc 'GRANT ${permission} ON ${object} TO "${user.name}"' ${database}
-            '') user.ensurePermissions)}
+              '') user.ensurePermissions
+            )}
           '') ensureUsers}
 
           touch "${config.services.postgresql.dataDir}/.taler-init"
