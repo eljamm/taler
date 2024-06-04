@@ -1,11 +1,21 @@
 {
   description = "GNU Taler modules for NixOS";
 
-  outputs = { self, nixpkgs }:
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+  };
+
+  outputs =
+    { self, nixpkgs }:
     let
-      systems = [ "x86_64-linux" "aarch64-linux" "riscv64-linux" ];
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "riscv64-linux"
+      ];
       forSystems = nixpkgs.lib.genAttrs systems;
-    in {
+    in
+    {
 
       nixosModules = rec {
         default = talerExchange;
@@ -19,18 +29,21 @@
           let
             nixos = nixpkgs.lib.nixosSystem {
               inherit system;
-              modules = [ {
-                imports = [ self.nixosModules.default ];
-                networking.hostName = "taler-example";
-                users.users.root.initialHashedPassword = "";
-                services.taler-exchange.enable = true;
-              } ];
+              modules = [
+                {
+                  imports = [ self.nixosModules.default ];
+                  networking.hostName = "taler-example";
+                  system.stateVersion = "24.05";
+                  users.users.root.initialHashedPassword = "";
+                  services.taler-exchange.enable = true;
+                }
+              ];
             };
-          in {
+          in
+          {
             type = "app";
             program = "${nixos.config.system.build.vm}/bin/run-taler-example-vm";
           };
       });
-        
     };
 }
